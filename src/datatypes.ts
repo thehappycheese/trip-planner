@@ -1,0 +1,25 @@
+export type Coordinate = { x: number, y: number }
+export type Location = {
+    type: "location"
+    name: string
+    position: Coordinate
+    booking?: Booking
+}
+export type Transport = {
+    type: "transport"
+    name: string
+    booking?: Booking
+}
+export type Booking = {
+    type: "booking"
+    time_start: string
+    time_end: string
+}
+export type Adventure = {
+    type: "adventure"
+    day: string
+    itin: (Location | Transport)[]
+}
+export type TripTimeline = {
+    itin: (Location | Adventure | Transport)[]
+}
