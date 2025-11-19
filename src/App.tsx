@@ -1,51 +1,34 @@
-import { useState, useEffect, type SetStateAction, type Dispatch } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import {
+    Field,
+    FieldGroup,
+    FieldLabel
+} from "@/components/ui/field";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSeparator,
-  FieldSet,
-  FieldTitle,
-} from "@/components/ui/field";
 import {
     Tabs,
     TabsContent,
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs";
-import * as L from 'leaflet';
-import type { Location, Adventure, Transport, Coordinate, TripTimeline } from './datatypes';
-import { TimelineView } from './components/Timeline';
-import { useLocalStorage } from './hooks/use_local_storage';
+import 'leaflet/dist/leaflet.css';
+import { useState } from 'react';
 import { MapPicker } from './components/MapPicker';
-
-// Fix Leaflet default marker icon
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-})
+import { TimelineView } from './components/Timeline';
+import type { Adventure, ItemType, Location, Transport, TripTimeline } from './datatypes';
+import { useLocalStorage } from './hooks/use_local_storage';
+import { useCurrentFormItem } from './state';
 
 function BookingForm({
     hasBooking, setHasBooking,
     bookingStart, setBookingStart,
     bookingEnd, setBookingEnd,
 }: {
-    hasBooking: boolean, setHasBooking: Dispatch<SetStateAction<boolean>>,
-    bookingStart: string, setBookingStart: Dispatch<SetStateAction<string>>,
-    bookingEnd: string, setBookingEnd: Dispatch<SetStateAction<string>>,
+    hasBooking: boolean, setHasBooking: (v: boolean) => void,
+    bookingStart: string, setBookingStart: (v: string) => void,
+    bookingEnd: string, setBookingEnd: (v: string) => void,
 }) {
     return <><div className="flex items-center gap-2">
         <input
@@ -81,14 +64,20 @@ function BookingForm({
 }
 
 
-function ItemForm({ onAdd }: { onAdd: (item: Location | Transport | Adventure) => void }) {
-    const [item_type, setItemType] = useState<'location' | 'transport' | 'adventure'>('location')
-    const [name, setName] = useState('')
-    const [position, setPosition] = useState<Coordinate>({ x: 0, y: 0 })
-    const [day, setDay] = useState('')
-    const [bookingStart, setBookingStart] = useState('')
-    const [bookingEnd, setBookingEnd] = useState('')
-    const [hasBooking, setHasBooking] = useState(false)
+function ItemForm({ 
+    onAdd
+}: { onAdd: (item: Location | Transport | Adventure) => void }) {
+    const {
+        item_type,
+        name,
+        position,
+        day,
+        bookingStart,
+        bookingEnd,
+        hasBooking,
+        clear,
+        update,
+    } = useCurrentFormItem();
 
     const handleSubmit = () => {
         const booking = hasBooking && bookingStart && bookingEnd
@@ -106,31 +95,14 @@ function ItemForm({ onAdd }: { onAdd: (item: Location | Transport | Adventure) =
         }
 
         onAdd(new_item)
-        setName('')
-        setDay('')
-        setPosition({ x: 0, y: 0 })
-        setBookingStart('')
-        setBookingEnd('')
-        setHasBooking(false)
+        clear()
     }
 
     return (
         <Card className="p-6">
             <h2 className="text-xl font-bold mb-4">Add Item</h2>
-
             <div className="space-y-4">
-
-                {/* <Select value={itemType} onValueChange={(v: any) => setItemType(v)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="location">Location</SelectItem>
-              <SelectItem value="transport">Transport</SelectItem>
-              <SelectItem value="adventure">Adventure</SelectItem>
-            </SelectContent>
-          </Select> */}
-                <Tabs value={item_type} onValueChange={setItemType}>
+                <Tabs value={item_type} onValueChange={v => update({ item_type: v as ItemType })}>
                     <TabsList >
                         <TabsTrigger value="adventure">Adventure</TabsTrigger>
                         <TabsTrigger value="location">Location</TabsTrigger>
@@ -139,40 +111,40 @@ function ItemForm({ onAdd }: { onAdd: (item: Location | Transport | Adventure) =
                     <TabsContent value="adventure">
                         <Field>
                             <Label>Name</Label>
-                            <Input value={name} onChange={(e) => setName(e.target.value)} />
+                            <Input value={name} onChange={e => update({ name: e.target.value })} />
                         </Field>
                     </TabsContent>
                     <TabsContent value="location">
                         <FieldGroup>
                             <Field>
                                 <FieldLabel>Name</FieldLabel>
-                                <Input value={name} onChange={(e) => setName(e.target.value)} />
+                                <Input value={name} onChange={e => update({ name: e.target.value })} />
                             </Field>
                             <Field>
                                 <FieldLabel>Select Location (click on map)</FieldLabel>
                                 <div className="rounded overflow-hidden border">
-                                    <MapPicker position={position} onPositionChange={setPosition} />
+                                    <MapPicker position={position} onPositionChange={position => update({ position })} />
                                 </div>
                                 <div className='grid grid-cols-2 gap-2'>
                                     <Input
                                         type="number"
                                         placeholder="Lat"
                                         value={position.x || ''}
-                                        onChange={(e) => setPosition({ ...position, x: Number(e.target.value) })}
+                                        onChange={(e) => update({ position: { x: Number(e.target.value), y: position.y } })}
                                     />
                                     <Input
                                         type="number"
                                         placeholder="Lng"
                                         value={position.y || ''}
-                                        onChange={(e) => setPosition({ ...position, y: Number(e.target.value) })}
+                                        onChange={(e) => update({ position: { x: position.x, y: Number(e.target.value) } })}
                                     />
                                 </div>
                             </Field>
                             <BookingForm
                                 {...{
-                                    hasBooking, setHasBooking,
-                                    bookingStart, setBookingStart,
-                                    bookingEnd, setBookingEnd
+                                    hasBooking, setHasBooking: hasBooking => update({ hasBooking }),
+                                    bookingStart, setBookingStart: bookingStart => update({ bookingStart }),
+                                    bookingEnd, setBookingEnd: bookingEnd => update({ bookingEnd }),
                                 }}
                             />
                         </FieldGroup>
@@ -180,13 +152,13 @@ function ItemForm({ onAdd }: { onAdd: (item: Location | Transport | Adventure) =
                     <TabsContent value="travel">
                         <div>
                             <Label>Day</Label>
-                            <Input value={day} onChange={(e) => setDay(e.target.value)} placeholder="e.g., 2024-01-15" />
+                            <Input value={day} onChange={(e) => update({ day: e.target.value })} placeholder="e.g., 2024-01-15" />
                         </div>
                         <BookingForm
                             {...{
-                                hasBooking, setHasBooking,
-                                bookingStart, setBookingStart,
-                                bookingEnd, setBookingEnd
+                                hasBooking, setHasBooking: hasBooking => update({ hasBooking }),
+                                bookingStart, setBookingStart: bookingStart => update({ bookingStart }),
+                                bookingEnd, setBookingEnd: bookingEnd => update({ bookingEnd }),
                             }}
                         />
                     </TabsContent>
@@ -202,76 +174,76 @@ function ItemForm({ onAdd }: { onAdd: (item: Location | Transport | Adventure) =
 
 
 function App() {
-  const [timeline, setTimeline] = useLocalStorage<TripTimeline>('tripTimeline', { itin: [] })
-  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
+    const [timeline, setTimeline] = useLocalStorage<TripTimeline>('tripTimeline', { itin: [] })
+    const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
 
-  const handleAddItem = (item_to_add: Location | Transport | Adventure) => {
-    if (selectedItems.size===1){
-        const index = selectedItems.values().next().value!;
-        const item = timeline.itin[index];
-        if(item.type==="adventure"){
-            if(item_to_add.type!=="adventure"){
-                const new_item:Adventure = {...item, itin:[...item.itin, item_to_add]};
-                const new_timeline:TripTimeline = {...timeline, itin: [...timeline.itin] };
-                new_timeline.itin[index]= new_item;
-                setTimeline(new_timeline);
-                return
+    const handleAddItem = (item_to_add: Location | Transport | Adventure) => {
+        if (selectedItems.size === 1) {
+            const index = selectedItems.values().next().value!;
+            const item = timeline.itin[index];
+            if (item.type === "adventure") {
+                if (item_to_add.type !== "adventure") {
+                    const new_item: Adventure = { ...item, itin: [...item.itin, item_to_add] };
+                    const new_timeline: TripTimeline = { ...timeline, itin: [...timeline.itin] };
+                    new_timeline.itin[index] = new_item;
+                    setTimeline(new_timeline);
+                    return
+                }
             }
         }
+        setTimeline({ ...timeline, itin: [...timeline.itin, item_to_add] })
     }
-    setTimeline({...timeline, itin: [...timeline.itin, item_to_add] })
-  }
 
-  const handleClear = () => {
-    setTimeline({ itin: [] })
-  }
+    const handleClear = () => {
+        setTimeline({ itin: [] })
+    }
 
-  const handleRemove = (index: number) => {
-    setTimeline({ itin: timeline.itin.filter((_, i) => i !== index) })
-  }
+    const handleRemove = (index: number) => {
+        setTimeline({ itin: timeline.itin.filter((_, i) => i !== index) })
+    }
 
-  const handleMoveUp = (index: number) => {
-    if (index === 0) return
-    const newItin = [...timeline.itin]
-    const temp = newItin[index]
-    newItin[index] = newItin[index - 1]
-    newItin[index - 1] = temp
-    setTimeline({ itin: newItin })
-  }
+    const handleMoveUp = (index: number) => {
+        if (index === 0) return
+        const newItin = [...timeline.itin]
+        const temp = newItin[index]
+        newItin[index] = newItin[index - 1]
+        newItin[index - 1] = temp
+        setTimeline({ itin: newItin })
+    }
 
-  const handleMoveDown = (index: number) => {
-    if (index === timeline.itin.length - 1) return
-    const newItin = [...timeline.itin]
-    const temp = newItin[index]
-    newItin[index] = newItin[index + 1]
-    newItin[index + 1] = temp
-    setTimeline({ itin: newItin })
-  }
-  const handleEditSelected = () =>{
+    const handleMoveDown = (index: number) => {
+        if (index === timeline.itin.length - 1) return
+        const newItin = [...timeline.itin]
+        const temp = newItin[index]
+        newItin[index] = newItin[index + 1]
+        newItin[index + 1] = temp
+        setTimeline({ itin: newItin })
+    }
+    const handleEditSelected = () => {
 
-  }
+    }
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Trip Timeline Builder</h1>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ItemForm onAdd={handleAddItem} />
-          <TimelineView 
-            timeline={timeline} 
-            onClear={handleClear}
-            onRemove={handleRemove}
-            onMoveUp={handleMoveUp}
-            onMoveDown={handleMoveDown}
-            selectedItems={selectedItems}
-            setSelectedItems={setSelectedItems}
-            onEditSelected={handleEditSelected}
-          />
+    return (
+        <div className="min-h-screen bg-gray-50 p-8">
+            <div className="max-w-6xl mx-auto">
+                <h1 className="text-3xl font-bold mb-8">Trip Timeline Builder</h1>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <ItemForm onAdd={handleAddItem} />
+                    <TimelineView
+                        timeline={timeline}
+                        onClear={handleClear}
+                        onRemove={handleRemove}
+                        onMoveUp={handleMoveUp}
+                        onMoveDown={handleMoveDown}
+                        selectedItems={selectedItems}
+                        setSelectedItems={setSelectedItems}
+                        onEditSelected={handleEditSelected}
+                    />
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  )
+    )
 }
 
 export default App

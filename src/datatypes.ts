@@ -1,3 +1,4 @@
+export type ItemType = 'location' | 'transport' | 'adventure';
 export type Coordinate = { x: number, y: number }
 export type Location = {
     type: "location"
