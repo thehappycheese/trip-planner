@@ -1,7 +1,9 @@
-import type { Adventure, Location, Transport, TripTimeline } from "@/datatypes"
+import type { Adventure, Location, Transport } from "@/datatypes"
 import { MapContainer, TileLayer } from "react-leaflet"
 import { Button } from "./ui/button"
 import { Card } from "./ui/card"
+
+import { useTripStore } from "@/store"
 
 export function TimelineItem({
     item,
@@ -24,6 +26,7 @@ export function TimelineItem({
     onMoveUp: (index: number) => void
     onMoveDown: (index: number) => void
 }) {
+    debugger
     return (
         <div className={`p-3 rounded border ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-slate-50'}`}>
             <div className="flex items-start justify-between">
@@ -95,82 +98,50 @@ export function TimelineItem({
     )
 }
 
-export function TimelineView({
-    timeline,
-    onClear,
-    onRemove,
-    onMoveUp,
-    onMoveDown,
-    selectedItems,
-    setSelectedItems,
-    onEditSelected,
-}: {
-    timeline: TripTimeline
-    selectedItems:Set<number>, 
-    setSelectedItems:(new_value:Set<number>)=>void,
-    onClear: () => void
-    onRemove: (index: number) => void
-    onMoveUp: (index: number) => void
-    onMoveDown: (index: number) => void
-    onEditSelected: () => void
-}) {
-    
-
-    const handleToggleSelect = (index: number) => {
-        const newSelected = new Set(selectedItems)
-        if (newSelected.has(index)) {
-            newSelected.delete(index)
-        } else {
-            newSelected.add(index)
-        }
-        setSelectedItems(newSelected)
-    }
-
-    const handleRemoveSelected = () => {
-        const indices = Array.from(selectedItems).sort((a, b) => b - a)
-        indices.forEach(index => onRemove(index))
-        setSelectedItems(new Set())
-    }
-
+export function TimelineView() {
+    const itin = useTripStore(s=>s.itin);
+    const selected_item = useTripStore(s=>s.selected_item);
+    const clear_timeline = useTripStore(s=>s.clear_timeline);
+    console.log(itin.length,"itin items")
     return (
         <Card className="p-6">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Trip Timeline ({timeline.itin.length} items)</h2>
+                <h2 className="text-xl font-bold">Trip Timeline ({itin.length} items)</h2>
                 <div className="flex gap-2">
-                    {selectedItems.size ===1 && (
-                        <Button variant="outline" size="sm" onClick={onEditSelected}>
+                    {selected_item && (
+                        <Button variant="outline" size="sm" onClick={()=>alert("not implemented yet")}>
                             Edit
                         </Button>
                     )}
-                    {selectedItems.size > 0 && (
-                        <Button variant="outline" size="sm" onClick={handleRemoveSelected}>
-                            Remove Selected ({selectedItems.size})
+                    {selected_item && (
+                        <Button variant="outline" size="sm" onClick={()=>alert("not implemented yet")}>
+                            Remove Selected
                         </Button>
                     )}
-                    {timeline.itin.length > 0 && (
-                        <Button variant="outline" size="sm" onClick={onClear}>
+                    {itin.length > 0 && (
+                        <Button variant="outline" size="sm" onClick={clear_timeline}>
                             Clear All
                         </Button>
                     )}
                 </div>
             </div>
 
-            {timeline.itin.length === 0 ? (
+            {itin.length === 0 ? (
                 <p className="text-gray-500">No items yet. Add some above!</p>
             ) : (
                 <div className="space-y-2">
-                    {timeline.itin.map((item, i) => (
+                    {itin.map((item, i) => (
                         <TimelineItem
                             key={i}
                             item={item}
                             index={i}
-                            isSelected={selectedItems.has(i)}
+                            isSelected={i===selected_item}
                             isFirst={i === 0}
-                            isLast={i === timeline.itin.length - 1}
-                            onToggleSelect={handleToggleSelect}
-                            onRemove={onRemove}
-                            onMoveUp={onMoveUp}
-                            onMoveDown={onMoveDown}
+                            isLast={i === itin.length - 1}
+                            onToggleSelect={()=>useTripStore.setState({selected_item:(i===selected_item)?undefined:i})}
+                            onRemove={()=>alert("not implemented yet")}
+                            onMoveUp={()=>alert("not implemented yet")}
+                            onMoveDown={()=>alert("not implemented yet")}
                         />
                     ))}
                 </div>

@@ -24,3 +24,12 @@ export type Adventure = {
 export type TripTimeline = {
     itin: (Location | Adventure | Transport)[]
 }
+export type CurrentFormItem = {
+    item_type: ItemType;
+    name: string;
+    position: Coordinate;
+    day: string;
+    bookingStart: string;
+    bookingEnd: string;
+    hasBooking: boolean;
+};

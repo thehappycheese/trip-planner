@@ -17,9 +17,9 @@ import 'leaflet/dist/leaflet.css';
 import { useState } from 'react';
 import { MapPicker } from './components/MapPicker';
 import { TimelineView } from './components/Timeline';
-import type { Adventure, ItemType, Location, Transport, TripTimeline } from './datatypes';
+import type { Adventure, CurrentFormItem, ItemType, Location, Transport, TripTimeline } from './datatypes';
 import { useLocalStorage } from './hooks/use_local_storage';
-import { useCurrentFormItem } from './state';
+import { useTripStore, type Store } from './store';
 
 function BookingForm({
     hasBooking, setHasBooking,
@@ -64,9 +64,7 @@ function BookingForm({
 }
 
 
-function ItemForm({ 
-    onAdd
-}: { onAdd: (item: Location | Transport | Adventure) => void }) {
+function ItemForm() {
     const {
         item_type,
         name,
@@ -75,27 +73,19 @@ function ItemForm({
         bookingStart,
         bookingEnd,
         hasBooking,
-        clear,
-        update,
-    } = useCurrentFormItem();
+    } = useTripStore(state => state.current_form_item);
+    
+    const {
+        clear_current_form_item,
+        add_current_form_item,
+    } = useTripStore();
+    const update = (v:Partial<CurrentFormItem>)=>useTripStore.setState(state=>({...state, current_form_item:{...state.current_form_item, ...v}}))
 
     const handleSubmit = () => {
-        const booking = hasBooking && bookingStart && bookingEnd
-            ? { type: 'booking' as const, time_start: bookingStart, time_end: bookingEnd }
-            : undefined
 
-        let new_item: Location | Transport | Adventure
 
-        if (item_type === 'location') {
-            new_item = { type: 'location', name, position, booking }
-        } else if (item_type === 'transport') {
-            new_item = { type: 'transport', name, booking }
-        } else {
-            new_item = { type: 'adventure', day, itin: [] }
-        }
-
-        onAdd(new_item)
-        clear()
+        add_current_form_item()
+        clear_current_form_item()
     }
 
     return (
@@ -174,54 +164,8 @@ function ItemForm({
 
 
 function App() {
-    const [timeline, setTimeline] = useLocalStorage<TripTimeline>('tripTimeline', { itin: [] })
-    const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
 
-    const handleAddItem = (item_to_add: Location | Transport | Adventure) => {
-        if (selectedItems.size === 1) {
-            const index = selectedItems.values().next().value!;
-            const item = timeline.itin[index];
-            if (item.type === "adventure") {
-                if (item_to_add.type !== "adventure") {
-                    const new_item: Adventure = { ...item, itin: [...item.itin, item_to_add] };
-                    const new_timeline: TripTimeline = { ...timeline, itin: [...timeline.itin] };
-                    new_timeline.itin[index] = new_item;
-                    setTimeline(new_timeline);
-                    return
-                }
-            }
-        }
-        setTimeline({ ...timeline, itin: [...timeline.itin, item_to_add] })
-    }
 
-    const handleClear = () => {
-        setTimeline({ itin: [] })
-    }
-
-    const handleRemove = (index: number) => {
-        setTimeline({ itin: timeline.itin.filter((_, i) => i !== index) })
-    }
-
-    const handleMoveUp = (index: number) => {
-        if (index === 0) return
-        const newItin = [...timeline.itin]
-        const temp = newItin[index]
-        newItin[index] = newItin[index - 1]
-        newItin[index - 1] = temp
-        setTimeline({ itin: newItin })
-    }
-
-    const handleMoveDown = (index: number) => {
-        if (index === timeline.itin.length - 1) return
-        const newItin = [...timeline.itin]
-        const temp = newItin[index]
-        newItin[index] = newItin[index + 1]
-        newItin[index + 1] = temp
-        setTimeline({ itin: newItin })
-    }
-    const handleEditSelected = () => {
-
-    }
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">
@@ -229,17 +173,8 @@ function App() {
                 <h1 className="text-3xl font-bold mb-8">Trip Timeline Builder</h1>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <ItemForm onAdd={handleAddItem} />
-                    <TimelineView
-                        timeline={timeline}
-                        onClear={handleClear}
-                        onRemove={handleRemove}
-                        onMoveUp={handleMoveUp}
-                        onMoveDown={handleMoveDown}
-                        selectedItems={selectedItems}
-                        setSelectedItems={setSelectedItems}
-                        onEditSelected={handleEditSelected}
-                    />
+                    <ItemForm />
+                    <TimelineView/>
                 </div>
             </div>
         </div>
