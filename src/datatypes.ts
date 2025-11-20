@@ -21,6 +21,8 @@ export type Adventure = {
     day: string
     itin: (Location | Transport)[]
 }
+
+export type ItinType = Location | Transport | Booking;
 export type TripTimeline = {
     itin: (Location | Adventure | Transport)[]
 }
@@ -29,6 +31,7 @@ export type CurrentFormItem = {
     name: string;
     position: Coordinate;
     day: string;
+    itin:(Location | Transport)[];
     bookingStart: string;
     bookingEnd: string;
     hasBooking: boolean;
