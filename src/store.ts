@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { Adventure, CurrentFormItem, ItemType, ItinType, Location, Transport } from './datatypes';
+import type { Adventure, CurrentFormItem, Location, Transport } from './datatypes';
 
 
 

@@ -14,12 +14,10 @@ import {
     TabsTrigger,
 } from "@/components/ui/tabs";
 import 'leaflet/dist/leaflet.css';
-import { useState } from 'react';
-import { MapPicker } from './components/MapPicker';
+import { LocationInput } from './components/LocationInput';
 import { TimelineView } from './components/Timeline';
-import type { Adventure, CurrentFormItem, ItemType, Location, Transport, TripTimeline } from './datatypes';
-import { useLocalStorage } from './hooks/use_local_storage';
-import { useTripStore, type Store } from './store';
+import type { CurrentFormItem, ItemType } from './datatypes';
+import { useTripStore } from './store';
 
 function BookingForm({
     hasBooking, setHasBooking,
@@ -106,30 +104,11 @@ function ItemForm() {
                     </TabsContent>
                     <TabsContent value="location">
                         <FieldGroup>
-                            <Field>
-                                <FieldLabel>Name</FieldLabel>
-                                <Input value={name} onChange={e => update({ name: e.target.value })} />
-                            </Field>
-                            <Field>
-                                <FieldLabel>Select Location (click on map)</FieldLabel>
-                                <div className="rounded overflow-hidden border">
-                                    <MapPicker position={position} onPositionChange={position => update({ position })} />
-                                </div>
-                                <div className='grid grid-cols-2 gap-2'>
-                                    <Input
-                                        type="number"
-                                        placeholder="Lat"
-                                        value={position.x || ''}
-                                        onChange={(e) => update({ position: { x: Number(e.target.value), y: position.y } })}
-                                    />
-                                    <Input
-                                        type="number"
-                                        placeholder="Lng"
-                                        value={position.y || ''}
-                                        onChange={(e) => update({ position: { x: position.x, y: Number(e.target.value) } })}
-                                    />
-                                </div>
-                            </Field>
+                            <LocationInput
+                                name={name}
+                                position={position}
+                                onUpdate={value => update({ name: value.name, position:value.position })}
+                            />
                             <BookingForm
                                 {...{
                                     hasBooking, setHasBooking: hasBooking => update({ hasBooking }),
@@ -140,17 +119,19 @@ function ItemForm() {
                         </FieldGroup>
                     </TabsContent>
                     <TabsContent value="travel">
-                        <div>
-                            <Label>Day</Label>
-                            <Input value={day} onChange={(e) => update({ day: e.target.value })} placeholder="e.g., 2024-01-15" />
-                        </div>
-                        <BookingForm
-                            {...{
-                                hasBooking, setHasBooking: hasBooking => update({ hasBooking }),
-                                bookingStart, setBookingStart: bookingStart => update({ bookingStart }),
-                                bookingEnd, setBookingEnd: bookingEnd => update({ bookingEnd }),
-                            }}
-                        />
+                        <FieldGroup>
+                            <Field>
+                                <FieldLabel>Day</FieldLabel>
+                                <Input value={day} onChange={(e) => update({ day: e.target.value })} placeholder="e.g., 2024-01-15" />
+                            </Field>
+                            <BookingForm
+                                {...{
+                                    hasBooking, setHasBooking: hasBooking => update({ hasBooking }),
+                                    bookingStart, setBookingStart: bookingStart => update({ bookingStart }),
+                                    bookingEnd, setBookingEnd: bookingEnd => update({ bookingEnd }),
+                                }}
+                            />
+                        </FieldGroup>
                     </TabsContent>
                 </Tabs>
 
@@ -173,6 +154,7 @@ function App() {
                 <h1 className="text-3xl font-bold mb-8">Trip Timeline Builder</h1>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
                     <ItemForm />
                     <TimelineView/>
                 </div>

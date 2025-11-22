@@ -8,6 +8,7 @@ import { useTripStore } from "@/store"
 export function TimelineItem({
     item,
     index,
+    parent_index,
     isSelected,
     isFirst,
     isLast,
@@ -18,6 +19,7 @@ export function TimelineItem({
 }: {
     item: Location | Transport | Adventure
     index: number
+    parent_index?: number
     isSelected?: boolean
     isFirst: boolean
     isLast: boolean
@@ -98,14 +100,15 @@ export function TimelineItem({
             </div>
             <div className="flex flex-col gap-2 pt-2 ml-10 mr-4">
                 {(item.type === "adventure") && item.itin.map(
-                    (sub_item, index) => <div key={index}>
+                    (sub_item, sub_index) =>
                         <TimelineItem
+                            key={sub_index}
                             item={sub_item}
-                            index={index}
-                            isFirst={index==0}
-                            isLast={item.itin.length-1===index}
+                            index={sub_index}
+                            parent_index={index}
+                            isFirst={sub_index == 0}
+                            isLast={item.itin.length - 1 === sub_index}
                         />
-                    </div>
                 )}
             </div>
         </div>
