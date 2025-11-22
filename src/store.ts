@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Adventure, CurrentFormItem, Location, Transport } from './datatypes';
+import { move_down, move_up } from './lib/array_utilities';
 
 
 
@@ -14,13 +15,16 @@ type Actions = {
     clear_current_form_item: () => void,
     add_current_form_item: () => void,
     clear_timeline: () => void,
+    move_up: (index: number | [number, number]) => void,
+    move_down: (index: number | [number, number]) => void,
+    remove: (index: number | [number, number]) => void,
 };
 
 const initialFormItem: CurrentFormItem = {
     item_type: 'location',
     name: '',
     position: { x: 0, y: 0 },
-    itin:[],
+    itin: [],
     day: '',
     bookingStart: '',
     bookingEnd: '',
@@ -32,6 +36,51 @@ export const useTripStore = create<Actions & Store>()(
         (set, get) => ({
             current_form_item: { ...initialFormItem },
 
+            move_up: index => set(state => {
+                if (Array.isArray(index)) {
+                    const [parent_index, child_index] = index;
+                    const new_itin = [...state.itin];
+                    const parent = new_itin[parent_index] as Adventure;
+                    new_itin[parent_index] = {
+                        ...parent,
+                        itin: move_up(parent.itin, child_index)
+                    };
+                    return { itin: new_itin };
+                }
+                return { itin: move_up(state.itin, index) };
+            }),
+
+            move_down: index => set(state => {
+                if (Array.isArray(index)) {
+                    const [parentIdx, childIdx] = index;
+                    const new_itin = [...state.itin];
+                    const parent = new_itin[parentIdx] as Adventure;
+                    new_itin[parentIdx] = {
+                        ...parent,
+                        itin: move_down(parent.itin, childIdx)
+                    };
+                    return { itin: new_itin };
+                }
+                return { itin: move_down(state.itin, index) };
+            }),
+            remove: index => set(state=>{
+                if (Array.isArray(index)) {
+                    const [parent_index, child_index] = index;
+                    const parent = state.itin[parent_index] as Adventure;
+                    const new_sub_itin = [...parent.itin];
+                    new_sub_itin.splice(child_index);
+                    const new_itin = [...state.itin]
+                    new_itin[parent_index] = {
+                        ...new_itin[parent_index],
+                        itin:new_sub_itin
+                    }
+                    return { itin: new_itin };
+                }
+                const new_itin = state.itin;
+                new_itin.splice(index)
+                return { itin: new_itin };
+            }),
+
             clear_current_form_item: () => set(state => ({
                 current_form_item: { ...initialFormItem, item_type: state.current_form_item.item_type }
             })),
@@ -39,7 +88,7 @@ export const useTripStore = create<Actions & Store>()(
             add_current_form_item: () => {
                 const state = get();
                 const {
-                    item_type:type,
+                    item_type: type,
                     position,
                     day,
                     name,
@@ -50,14 +99,16 @@ export const useTripStore = create<Actions & Store>()(
                 } = state.current_form_item;
                 const new_item = {
                     type,
-                    ...( (type==='location') ? {position} : {}),
-                    ...( (type==='transport' || type==='location') ? {name} : {}),
-                    ...( (type==='adventure') ? {day, itin} : {}),
-                    ...( (hasBooking) ? {booking:{
-                        type:"booking",
-                        time_start:bookingStart,
-                        time_end:bookingEnd,
-                    }} : {}),
+                    ...((type === 'location') ? { position } : {}),
+                    ...((type === 'transport' || type === 'location') ? { name } : {}),
+                    ...((type === 'adventure') ? { day, itin } : {}),
+                    ...((hasBooking) ? {
+                        booking: {
+                            type: "booking",
+                            time_start: bookingStart,
+                            time_end: bookingEnd,
+                        }
+                    } : {}),
                 }
 
 
@@ -67,7 +118,7 @@ export const useTripStore = create<Actions & Store>()(
 
                     if (
                         state.current_form_item.item_type !== "adventure"
-                        && selected_item 
+                        && selected_item
                         && selected_item.type === "adventure"
                     ) {
                         // Update the adventure's itin array

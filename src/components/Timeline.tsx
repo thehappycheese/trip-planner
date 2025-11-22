@@ -1,9 +1,10 @@
 import type { Adventure, Location, Transport } from "@/datatypes"
 import { MapContainer, TileLayer } from "react-leaflet"
 import { Button } from "./ui/button"
-import { Card } from "./ui/card"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "./ui/card"
 
 import { useTripStore } from "@/store"
+import { useState } from "react"
 
 export function TimelineItem({
     item,
@@ -23,19 +24,19 @@ export function TimelineItem({
     isSelected?: boolean
     isFirst: boolean
     isLast: boolean
-    onToggleSelect?: (index: number) => void
-    onRemove?: (index: number) => void
-    onMoveUp?: (index: number) => void
-    onMoveDown?: (index: number) => void
+    onToggleSelect?: (index: number | [number, number]) => void
+    onRemove?: (index: number | [number, number]) => void
+    onMoveUp?: (index: number | [number, number]) => void
+    onMoveDown?: (index: number | [number, number]) => void
 }) {
-    //return <div>{JSON.stringify(item)}</div>
+    const [is_expanded, set_expanded] = useState(true);
     return (
         <div className={`p-3 rounded border ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-slate-50'}`}>
             <div className="flex items-start justify-between">
                 <input
                     type="checkbox"
                     checked={isSelected}
-                    onChange={() => onToggleSelect?.(index)}
+                    onChange={() => onToggleSelect?.(parent_index ? [parent_index, index] : index)}
                     className="mt-1"
                 />
 
@@ -73,33 +74,32 @@ export function TimelineItem({
                 </div>
 
                 <div className="flex gap-1">
+                    {item.type==="adventure" && <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={()=>set_expanded(!is_expanded)}
+                    >{is_expanded?"-":"+"}</Button>}
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onMoveUp?.(index)}
+                        onClick={() => onMoveUp?.(parent_index ? [parent_index, index] : index)}
                         disabled={isFirst}
-                    >
-                        ↑
-                    </Button>
+                    >↑</Button>
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onMoveDown?.(index)}
+                        onClick={() => onMoveDown?.(parent_index ? [parent_index, index] : index)}
                         disabled={isLast}
-                    >
-                        ↓
-                    </Button>
+                    >↓</Button>
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onRemove?.(index)}
-                    >
-                        ✕
-                    </Button>
+                        onClick={() => onRemove?.(parent_index ? [parent_index, index] : index)}
+                    >✕</Button>
                 </div>
             </div>
-            <div className="flex flex-col gap-2 pt-2 ml-10 mr-4">
-                {(item.type === "adventure") && item.itin.map(
+            {item.type === "adventure" && is_expanded && <div className="flex flex-col gap-2 p-2 ml-2 mr-2 bg-white rounded shadow-inner">
+                {item.itin.map(
                     (sub_item, sub_index) =>
                         <TimelineItem
                             key={sub_index}
@@ -108,9 +108,13 @@ export function TimelineItem({
                             parent_index={index}
                             isFirst={sub_index == 0}
                             isLast={item.itin.length - 1 === sub_index}
+                            onToggleSelect={() => onToggleSelect?.([index, sub_index])}
+                            onRemove={() => onRemove?.([index, sub_index])}
+                            onMoveUp={() => onMoveUp?.([index, sub_index])}
+                            onMoveDown={() => onMoveDown?.([index, sub_index])}
                         />
                 )}
-            </div>
+            </div>}
         </div>
     )
 }
@@ -119,11 +123,14 @@ export function TimelineView() {
     const itin = useTripStore(s => s.itin);
     const selected_item = useTripStore(s => s.selected_item);
     const clear_timeline = useTripStore(s => s.clear_timeline);
+    const move_up = useTripStore(s => s.move_up);
+    const move_down = useTripStore(s => s.move_down);
+    const remove = useTripStore(s => s.remove);
     return (
         <Card className="p-6">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Trip Timeline ({itin.length} items)</h2>
-                <div className="flex gap-2">
+            <CardHeader>
+                <CardTitle>Trip Timeline</CardTitle>
+                <CardAction>
                     {selected_item && (
                         <Button variant="outline" size="sm" onClick={() => alert("not implemented yet")}>
                             Edit
@@ -139,15 +146,14 @@ export function TimelineView() {
                             Clear All
                         </Button>
                     )}
-                </div>
-            </div>
-
-            {itin.length === 0 ? (
-                <p className="text-gray-500">No items yet. Add some above!</p>
-            ) : (
-                <div className="space-y-2">
-                    {itin.map((item, i) => (
-                        <TimelineItem
+                </CardAction>
+            </CardHeader>
+            <CardContent className="space-y-2">
+                {
+                    itin.length === 0 ? (
+                        <p className="text-gray-500">No items yet. Add some above!</p>
+                    ) : (
+                        itin.map((item, i) => <TimelineItem
                             key={i}
                             item={item}
                             index={i}
@@ -155,13 +161,13 @@ export function TimelineView() {
                             isFirst={i === 0}
                             isLast={i === itin.length - 1}
                             onToggleSelect={() => useTripStore.setState({ selected_item: (i === selected_item) ? undefined : i })}
-                            onRemove={() => alert("not implemented yet")}
-                            onMoveUp={() => alert("not implemented yet")}
-                            onMoveDown={() => alert("not implemented yet")}
-                        />
-                    ))}
-                </div>
-            )}
+                            onRemove={(index) => remove(index)}
+                            onMoveUp={(index) => move_up(index)}
+                            onMoveDown={(index) => move_down(index)}
+                        />)
+                    )
+                }
+            </CardContent>
         </Card>
     )
 }

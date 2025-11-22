@@ -82,7 +82,7 @@ export function LocationSearchBar({
     }
 
     return (
-        <div className="relative">
+        <div>
             <Popover
                 open={loading || Boolean(error) || (showResults && results.length > 0)}
             >
