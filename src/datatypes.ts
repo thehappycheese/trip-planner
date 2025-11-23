@@ -1,9 +1,15 @@
+import type { RequiredBy } from "./lib/type_utilities";
+
 export type ItemType = 'location' | 'transport' | 'adventure';
 export type Coordinate = { x: number, y: number }
 export type Location = {
     type: "location"
-    name: string
-    position: Coordinate
+    name?: string
+    geocoded_name?:string
+    reference_method?:"search_result"|"clicked_map_or_manual_entry"
+    position?: Coordinate
+    viewport?:{top_left:Coordinate, bottom_right:Coordinate}
+    place_id?:string
     booking?: Booking
 }
 export type Transport = {
@@ -18,21 +24,12 @@ export type Booking = {
 }
 export type Adventure = {
     type: "adventure"
+    name: string
     day: string
-    itin: (Location | Transport)[]
+    /** itin Should never contain an adventure. Cant be enforced neatly by type system :(*/
+    itin: ItinType[]
 }
 
-export type ItinType = Location | Transport | Booking;
-export type TripTimeline = {
-    itin: (Location | Adventure | Transport)[]
-}
-export type CurrentFormItem = {
-    item_type: ItemType;
-    name: string;
-    position: Coordinate;
-    day: string;
-    itin:(Location | Transport)[];
-    bookingStart: string;
-    bookingEnd: string;
-    hasBooking: boolean;
-};
+export type ItinType = Location | Transport | Adventure;
+
+export type CurrentFormItem = RequiredBy<ItinType, "type">

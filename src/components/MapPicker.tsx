@@ -1,5 +1,5 @@
-import { forwardRef, useImperativeHandle, useRef } from "react"
 import type { Coordinate } from "@/datatypes"
+import { forwardRef, useImperativeHandle, useRef } from "react"
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet"
 
 export interface MapPickerRef {
@@ -8,10 +8,11 @@ export interface MapPickerRef {
 }
 export interface MapPickerProps { 
     position?: Coordinate
-    onPositionChange: (pos: Coordinate) => void 
+    on_change: (pos: Coordinate) => void 
 }
 
-export const MapPicker = forwardRef<MapPickerRef, MapPickerProps>(({ position, onPositionChange }, ref) => {
+export const MapPicker = forwardRef<MapPickerRef, MapPickerProps>(({ position, on_change }, ref) => {
+
     const map_ref = useRef<L.Map | null>(null)
 
     // Expose methods to parent component
@@ -36,11 +37,9 @@ export const MapPicker = forwardRef<MapPickerRef, MapPickerProps>(({ position, o
     function MapSetup() {
         const map = useMap()
         map_ref.current = map
-        map.setView([-27.1375627,120.6326831], 2);
-        
         useMapEvents({
             click: (e) => {
-                onPositionChange({ x: e.latlng.lat, y: e.latlng.lng })
+                on_change({ x: e.latlng.lat, y: e.latlng.lng })
             },
         })
         return null
@@ -48,9 +47,8 @@ export const MapPicker = forwardRef<MapPickerRef, MapPickerProps>(({ position, o
 
     return (
         <MapContainer 
-            // center={[position?.x ?? 0, position?.y ?? 0]} 
-            // zoom={2} 
-            
+            center={[-27.1375627, 120.6326831]} // Not Reactive
+            zoom={2} // Not Reactive
             style={{ height: '300px', width: '100%' }}
         >
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />

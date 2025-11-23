@@ -1,40 +1,25 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import type { Adventure, CurrentFormItem, Location, Transport } from './datatypes';
+import type { Adventure, ItinType, Location, Transport } from './datatypes';
 import { move_down, move_up } from './lib/array_utilities';
 
 
 
 export type Store = {
-    current_form_item: CurrentFormItem
     itin: (Location | Adventure | Transport)[]
     selected_item?: number
 }
 type Actions = {
-    //update:(partial:Partial<CurrentFormItem>)=>void
-    clear_current_form_item: () => void,
-    add_current_form_item: () => void,
+    add_item: (new_item:ItinType)=>void,
     clear_timeline: () => void,
     move_up: (index: number | [number, number]) => void,
     move_down: (index: number | [number, number]) => void,
     remove: (index: number | [number, number]) => void,
 };
 
-const initialFormItem: CurrentFormItem = {
-    item_type: 'location',
-    name: '',
-    position: { x: 0, y: 0 },
-    itin: [],
-    day: '',
-    bookingStart: '',
-    bookingEnd: '',
-    hasBooking: false,
-};
-
 export const useTripStore = create<Actions & Store>()(
     persist(
         (set, get) => ({
-            current_form_item: { ...initialFormItem },
 
             move_up: index => set(state => {
                 if (Array.isArray(index)) {
@@ -81,66 +66,70 @@ export const useTripStore = create<Actions & Store>()(
                 return { itin: new_itin };
             }),
 
-            clear_current_form_item: () => set(state => ({
-                current_form_item: { ...initialFormItem, item_type: state.current_form_item.item_type }
-            })),
+            
 
-            add_current_form_item: () => {
-                const state = get();
-                const {
-                    item_type: type,
-                    position,
-                    day,
-                    name,
-                    hasBooking,
-                    bookingStart,
-                    bookingEnd,
-                    itin,
-                } = state.current_form_item;
-                const new_item = {
-                    type,
-                    ...((type === 'location') ? { position } : {}),
-                    ...((type === 'transport' || type === 'location') ? { name } : {}),
-                    ...((type === 'adventure') ? { day, itin } : {}),
-                    ...((hasBooking) ? {
-                        booking: {
-                            type: "booking",
-                            time_start: bookingStart,
-                            time_end: bookingEnd,
-                        }
-                    } : {}),
-                }
-
-
-                // If we have a selected item AND it's an adventure, add to its nested itin
-                if (state.selected_item !== undefined) {
-                    const selected_item = state.itin[state.selected_item];
-
-                    if (
-                        state.current_form_item.item_type !== "adventure"
-                        && selected_item
-                        && selected_item.type === "adventure"
-                    ) {
-                        // Update the adventure's itin array
-                        const updatedItin = [...state.itin];
-                        updatedItin[state.selected_item] = {
-                            ...selected_item,
-                            itin: [...selected_item.itin, new_item]
-                        };
-                        set({
-                            itin: updatedItin,
-                            current_form_item: { ...initialFormItem, item_type: state.current_form_item.item_type }
-                        });
-                        return;
-                    }
-                }
-
-                // Otherwise, add to main itin array (this now runs when selected_item is undefined)
-                set({
-                    itin: [...state.itin, new_item],
-                    current_form_item: { ...initialFormItem, item_type: state.current_form_item.item_type }
-                });
+            add_item:(new_item:ItinType) => {
+                set(state=>({
+                    ...state, itin:[...state.itin, new_item]
+                }))
             },
+
+            // add_current_form_item: () => {
+            //     const state = get();
+            //     const {
+            //         item_type: type,
+            //         position,
+            //         day,
+            //         name,
+            //         hasBooking,
+            //         bookingStart,
+            //         bookingEnd,
+            //         itin,
+            //     } = state.current_form_item;
+            //     const new_item = {
+            //         type,
+            //         ...((type === 'location') ? { position } : {}),
+            //         ...((type === 'transport' || type === 'location') ? { name } : {}),
+            //         ...((type === 'adventure') ? { day, itin } : {}),
+            //         ...((hasBooking) ? {
+            //             booking: {
+            //                 type: "booking",
+            //                 time_start: bookingStart,
+            //                 time_end: bookingEnd,
+            //             }
+            //         } : {}),
+            //     }
+
+
+            //     // If we have a selected item AND it's an adventure, add to its nested itin
+            //     if (state.selected_item !== undefined) {
+            //         const selected_item = state.itin[state.selected_item];
+
+            //         if (
+            //             state.current_form_item.item_type !== "adventure"
+            //             && selected_item
+            //             && selected_item.type === "adventure"
+            //         ) {
+            //             // Update the adventure's itin array
+            //             const updatedItin = [...state.itin];
+            //             updatedItin[state.selected_item] = {
+            //                 ...selected_item,
+            //                 itin: [...selected_item.itin, new_item]
+            //             };
+            //             set({
+            //                 itin: updatedItin,
+            //                 current_form_item: { ...initialFormItem, item_type: state.current_form_item.item_type }
+            //             });
+            //             return;
+            //         }
+            //     }
+
+            //     // Otherwise, add to main itin array (this now runs when selected_item is undefined)
+            //     set({
+            //         itin: [...state.itin, new_item],
+            //         current_form_item: { ...initialFormItem, item_type: state.current_form_item.item_type }
+            //     });
+            // },
             clear_timeline: () => {
                 set(state => ({ ...state, itin: [] }))
             },
